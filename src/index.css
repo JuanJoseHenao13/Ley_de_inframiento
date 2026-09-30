@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@theme {
+  --color-neu-bg: #EBF1F7;
+  --color-neu-base: #E8EEF5;
+  --color-neu-card: #EDF3F9;
+  --color-neu-dark: #1E293B;
+  --color-neu-accent: #2563EB;
+  --color-neu-accentHover: #1D4ED8;
+  --color-neu-shadowLight: #FFFFFF;
+  --color-neu-shadowDark: #A6B8CE;
+
+  --shadow-neu-flat: 6px 6px 14px rgba(166, 180, 206, 0.45), -6px -6px 14px rgba(255, 255, 255, 0.95);
+  --shadow-neu-card: 8px 8px 18px rgba(160, 175, 198, 0.45), -8px -8px 18px rgba(255, 255, 255, 0.95);
+  --shadow-neu-pressed: inset 4px 4px 8px rgba(160, 175, 198, 0.4), inset -4px -4px 8px rgba(255, 255, 255, 0.9);
+  --shadow-neu-pressed-sm: inset 2px 2px 5px rgba(160, 175, 198, 0.35), inset -2px -2px 5px rgba(255, 255, 255, 0.9);
+  --shadow-neu-btn: 4px 4px 9px rgba(160, 175, 198, 0.4), -4px -4px 9px rgba(255, 255, 255, 0.95);
+  --shadow-neu-accent: 0px 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+@layer base {
+  body {
+    @apply bg-[#EAF0F7] dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-sans select-none antialiased transition-colors duration-300;
+  }
+}
+
+@layer components {
+  /* Custom ranges & scrollbar for Neumorphic feel from prototype */
+  input[type=range] {
+    -webkit-appearance: none;
+    background: transparent;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 18px;
+    width: 18px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 3px solid #2563EB;
+    box-shadow: 2px 2px 5px rgba(160, 175, 198, 0.5), -2px -2px 5px rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    margin-top: -6px;
+    transition: transform 0.15s ease;
+  }
+  input[type=range]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+  input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: #D9E2ED;
+    border-radius: 3px;
+    box-shadow: inset 1px 1px 3px rgba(160, 175, 198, 0.6), inset -1px -1px 3px rgba(255, 255, 255, 0.8);
+  }
+  
+  /* Custom scrollbar for data tables */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #E8EEF5;
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #B6C8DC;
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #8FAAC5;
+  }
+}
