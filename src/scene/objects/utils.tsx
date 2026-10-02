@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { shaderMaterial } from '@react-three/drei';
@@ -136,7 +136,7 @@ extend({ FluidAuraMaterialImpl });
 
 // ─── Componente FluidAura ──────────────────────────────────────────────────────
 export const FluidAura = ({ currentTemp, deltaT, isTransfer = false }: any) => {
-  const matRef = useRef<any>();
+  const matRef = useRef<any>(null);
   const color1 = useMemo(() => getThermalColor(currentTemp), [currentTemp]);
   const color2 = useMemo(() => getThermalColor(Math.max(-10, currentTemp - 40)), [currentTemp]);
   const intensity = Math.min(1.0, Math.abs(deltaT) / 25);

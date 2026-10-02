@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
 import { temperatureAtTime } from '../../engine/coolingModel';
 import {

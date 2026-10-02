@@ -1,13 +1,8 @@
-import React from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
 import SettingsMenu from './SettingsMenu';
 
 const Header = () => {
   const { theme, setTheme, activeTab, setActiveTab } = useSimulationStore();
-
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
-  };
 
   return (
     <header className="bg-[#EDF3F9] dark:bg-slate-800 shadow-neu-card dark:shadow-none rounded-2xl px-5 py-3.5 flex flex-wrap items-center justify-between gap-4">

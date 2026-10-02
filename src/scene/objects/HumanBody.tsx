@@ -1,6 +1,4 @@
-import React from 'react';
 import { ThermalMaterial } from './utils';
-import { DoubleSide } from 'three';
 
 const HumanBody = ({ currentTemp, viewMode }: any) => {
   return (

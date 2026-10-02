@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
 import { temperatureAtTime } from '../../engine/coolingModel';
 import {
@@ -20,7 +20,7 @@ const ChartPanel = () => {
     return data;
   }, [T0, Tm, k, duration]);
 
-  const currentTimeIndex = chartData.findIndex(d => d.t >= time);
+
 
   return (
     <section className="bg-[#EDF3F9] dark:bg-slate-800 shadow-neu-card dark:shadow-none rounded-2xl p-3.5 flex flex-col justify-between h-[280px]">

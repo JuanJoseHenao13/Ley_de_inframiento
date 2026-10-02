@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
 import { temperatureAtTime, timeToTarget } from '../../engine/coolingModel';
 

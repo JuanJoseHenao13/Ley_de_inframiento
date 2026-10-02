@@ -1,8 +1,6 @@
-import React, { Suspense } from 'react';
+import { Suspense } from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
-import type { ViewMode } from '../../store/simulationStore';
 import { useSimulationLoop } from '../../engine/useSimulationLoop';
-import { Canvas } from '@react-three/fiber';
 import ThermalScene from '../../scene/ThermalScene';
 
 const SimulationHero = () => {

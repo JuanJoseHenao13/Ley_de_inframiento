@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import { useSimulationStore } from '../store/simulationStore';
 
 export const useSimulationLoop = () => {
-  const requestRef = useRef<number>();
-  const previousTimeRef = useRef<number>();
+  const requestRef = useRef<number>(undefined);
+  const previousTimeRef = useRef<number>(undefined);
 
   const animate = (time: number) => {
     if (previousTimeRef.current !== undefined) {

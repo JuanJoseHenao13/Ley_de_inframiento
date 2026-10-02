@@ -1,4 +1,3 @@
-import React from 'react';
 import { ThermalMaterial } from './utils';
 
 const AluminumBlock = ({ currentTemp, viewMode }: any) => {

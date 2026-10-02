@@ -1,4 +1,3 @@
-import React from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
 import type { ObjectType, Environment } from '../../store/simulationStore';
 

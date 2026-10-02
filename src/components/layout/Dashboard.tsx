@@ -1,4 +1,3 @@
-import React from 'react';
 import { useSimulationStore } from '../../store/simulationStore';
 import ConfigPanel from '../controls/ConfigPanel';
 import StatePanel from '../controls/StatePanel';

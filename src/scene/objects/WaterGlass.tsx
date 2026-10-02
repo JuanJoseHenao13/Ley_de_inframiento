@@ -1,4 +1,3 @@
-import React from 'react';
 import { DoubleSide } from 'three';
 import { ThermalMaterial } from './utils';
 

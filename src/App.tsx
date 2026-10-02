@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useSimulationStore } from './store/simulationStore';
 import Header from './components/layout/Header';
 import Dashboard from './components/layout/Dashboard';
