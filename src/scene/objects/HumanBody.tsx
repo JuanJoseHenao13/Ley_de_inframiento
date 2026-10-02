@@ -1,25 +1,24 @@
 import React from 'react';
 import { ThermalMaterial } from './utils';
+import { DoubleSide } from 'three';
 
 const HumanBody = ({ currentTemp, viewMode }: any) => {
   return (
-    <group position={[0, 0.1, 0]}>
-      {/* Laying down body simulating a deceased person on the table */}
-      
+    <group position={[0, 0.4, 0]} scale={0.8} rotation={[Math.PI / 2, 0, 0]}>
       {/* Head */}
-      <mesh castShadow receiveShadow position={[1.2, 0.25, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <sphereGeometry args={[0.25, 32, 32]} />
-        {viewMode === 'Thermal' ? (
+      <mesh position={[0, 1.2, 0]} castShadow receiveShadow>
+        <sphereGeometry args={[0.3, 32, 32]} />
+        {viewMode === 'Thermal' || viewMode === 'Heatmap' || viewMode === 'Transfer' ? (
           <ThermalMaterial currentTemp={currentTemp} viewMode={viewMode} />
         ) : (
-          <meshStandardMaterial color="#fcd34d" roughness={0.6} metalness={0.1} />
+          <meshStandardMaterial color="#ffccaa" roughness={0.4} metalness={0.1} />
         )}
       </mesh>
 
       {/* Torso */}
-      <mesh castShadow receiveShadow position={[0.2, 0.2, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <boxGeometry args={[1.2, 0.6, 0.4]} />
-        {viewMode === 'Thermal' ? (
+      <mesh position={[0, 0.4, 0]} castShadow receiveShadow>
+        <capsuleGeometry args={[0.25, 0.6, 16, 32]} />
+        {viewMode === 'Thermal' || viewMode === 'Heatmap' || viewMode === 'Transfer' ? (
           <ThermalMaterial currentTemp={currentTemp} viewMode={viewMode} />
         ) : (
           <meshStandardMaterial color="#3b82f6" roughness={0.8} metalness={0.1} />
@@ -27,38 +26,38 @@ const HumanBody = ({ currentTemp, viewMode }: any) => {
       </mesh>
 
       {/* Arms */}
-      <mesh castShadow receiveShadow position={[0.3, 0.15, 0.35]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.08, 0.08, 1.0, 16]} />
-        {viewMode === 'Thermal' ? (
+      <mesh position={[0.4, 0.5, 0]} rotation={[0, 0, -Math.PI / 8]} castShadow receiveShadow>
+        <capsuleGeometry args={[0.1, 0.5, 16, 16]} />
+        {viewMode === 'Thermal' || viewMode === 'Heatmap' || viewMode === 'Transfer' ? (
           <ThermalMaterial currentTemp={currentTemp} viewMode={viewMode} />
         ) : (
-          <meshStandardMaterial color="#fcd34d" roughness={0.6} metalness={0.1} />
+          <meshStandardMaterial color="#ffccaa" roughness={0.4} />
         )}
       </mesh>
-      <mesh castShadow receiveShadow position={[0.3, 0.15, -0.35]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.08, 0.08, 1.0, 16]} />
-        {viewMode === 'Thermal' ? (
+      <mesh position={[-0.4, 0.5, 0]} rotation={[0, 0, Math.PI / 8]} castShadow receiveShadow>
+        <capsuleGeometry args={[0.1, 0.5, 16, 16]} />
+        {viewMode === 'Thermal' || viewMode === 'Heatmap' || viewMode === 'Transfer' ? (
           <ThermalMaterial currentTemp={currentTemp} viewMode={viewMode} />
         ) : (
-          <meshStandardMaterial color="#fcd34d" roughness={0.6} metalness={0.1} />
+          <meshStandardMaterial color="#ffccaa" roughness={0.4} />
         )}
       </mesh>
 
       {/* Legs */}
-      <mesh castShadow receiveShadow position={[-0.9, 0.15, 0.15]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.1, 0.1, 1.2, 16]} />
-        {viewMode === 'Thermal' ? (
+      <mesh position={[0.15, -0.4, 0]} castShadow receiveShadow>
+        <capsuleGeometry args={[0.12, 0.6, 16, 16]} />
+        {viewMode === 'Thermal' || viewMode === 'Heatmap' || viewMode === 'Transfer' ? (
           <ThermalMaterial currentTemp={currentTemp} viewMode={viewMode} />
         ) : (
-          <meshStandardMaterial color="#1e293b" roughness={0.9} metalness={0.1} />
+          <meshStandardMaterial color="#1e293b" roughness={0.9} />
         )}
       </mesh>
-      <mesh castShadow receiveShadow position={[-0.9, 0.15, -0.15]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.1, 0.1, 1.2, 16]} />
-        {viewMode === 'Thermal' ? (
+      <mesh position={[-0.15, -0.4, 0]} castShadow receiveShadow>
+        <capsuleGeometry args={[0.12, 0.6, 16, 16]} />
+        {viewMode === 'Thermal' || viewMode === 'Heatmap' || viewMode === 'Transfer' ? (
           <ThermalMaterial currentTemp={currentTemp} viewMode={viewMode} />
         ) : (
-          <meshStandardMaterial color="#1e293b" roughness={0.9} metalness={0.1} />
+          <meshStandardMaterial color="#1e293b" roughness={0.9} />
         )}
       </mesh>
     </group>

@@ -1,11 +1,12 @@
-import React, { Suspense, useMemo, useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Environment, OrbitControls, ContactShadows, Sparkles, Sphere } from '@react-three/drei';
+import { Suspense, useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
+import { Environment, OrbitControls, ContactShadows, Cloud, Sparkles } from '@react-three/drei';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { useSimulationStore } from '../store/simulationStore';
 import * as THREE from 'three';
 import { temperatureAtTime } from '../engine/coolingModel';
 
-// Import our object models
 import CoffeeMug from './objects/CoffeeMug';
 import WaterGlass from './objects/WaterGlass';
 import MilkGlass from './objects/MilkGlass';
@@ -13,117 +14,153 @@ import TeaCup from './objects/TeaCup';
 import SoupBowl from './objects/SoupBowl';
 import AluminumBlock from './objects/AluminumBlock';
 import HumanBody from './objects/HumanBody';
+import { FluidAura } from './objects/utils';
 
-// Helper for interpolating thermal colors
-const getThermalColor = (temp: number) => {
-  const t = Math.max(0, Math.min(1, (temp + 10) / 110)); 
-  const blue = new THREE.Color('#0015ff');
-  const cyan = new THREE.Color('#00ffff');
-  const yellow = new THREE.Color('#ffff00');
-  const red = new THREE.Color('#ff0000');
-  const white = new THREE.Color('#ffffff');
-
-  if (t < 0.25) return blue.clone().lerp(cyan, t / 0.25);
-  if (t < 0.5) return cyan.clone().lerp(yellow, (t - 0.25) / 0.25);
-  if (t < 0.75) return yellow.clone().lerp(red, (t - 0.5) / 0.25);
-  return red.clone().lerp(white, (t - 0.75) / 0.25);
-};
-
-// Steam Component
 const Steam = ({ currentTemp }: { currentTemp: number }) => {
-  if (currentTemp < 45) return null; // Only emit steam if hot enough
+  if (currentTemp < 45) return null;
   const intensity = Math.min(1, (currentTemp - 45) / 55);
+
   return (
-    <Sparkles 
-      position={[0, 1.8, 0]} 
-      count={Math.floor(50 * intensity)} 
-      scale={[0.8, 2, 0.8]} 
-      size={6 * intensity} 
-      speed={0.4} 
-      opacity={0.3 * intensity} 
-      color="#ffffff" 
-    />
+    <group position={[0, 1.4, 0]}>
+      {/* Hyperrealistic dynamic smoke cloud */}
+      <Cloud
+        opacity={0.3 * intensity}
+        speed={0.8}
+        segments={30}
+        color="#ffffff"
+        scale={[1, 1.5, 1]}
+      />
+      {/* Small hot moisture particles */}
+      <Sparkles
+        count={50 * intensity}
+        scale={[1.5, 2, 1.5]}
+        size={2.5}
+        speed={1.5}
+        opacity={0.5 * intensity}
+        color="#ffecd1"
+      />
+    </group>
   );
 };
 
-// Transfer Particles Component (Convection flow)
-const HeatTransferLines = ({ deltaT, isHotterThanEnv }: { deltaT: number, isHotterThanEnv: boolean }) => {
+const HeatmapAura = ({ currentTemp, deltaT }: { currentTemp: number, deltaT: number }) => {
+  return (
+    <group position={[0, 0.4, 0]}>
+      <FluidAura currentTemp={currentTemp} deltaT={deltaT} isTransfer={false} />
+    </group>
+  );
+};
+
+const GlowingArrow = ({ angle, intensity, isHotter }: { angle: number, intensity: number, isHotter: boolean }) => {
+  const arrowRef = useRef<THREE.Group>(null);
+
+  const radiusStart = 0.8;
+  const radiusEnd = 1.4;
+  const heightStart = 0.2;
+  const heightEnd = 1.2;
+
+  const start = new THREE.Vector3(Math.cos(angle) * radiusStart, heightStart, Math.sin(angle) * radiusStart);
+  const end = new THREE.Vector3(Math.cos(angle) * radiusEnd, heightEnd, Math.sin(angle) * radiusEnd);
+  const control = new THREE.Vector3(Math.cos(angle) * (radiusStart + 0.3), heightStart + 0.5, Math.sin(angle) * (radiusStart + 0.3));
+
+  const curve = useMemo(() => new THREE.QuadraticBezierCurve3(start, control, end), [start, control, end]);
+
+  useFrame(({ clock }) => {
+    if (arrowRef.current) {
+      const t = (clock.getElapsedTime() + angle) % 2;
+      arrowRef.current.position.y = Math.sin(t * Math.PI) * 0.1;
+      arrowRef.current.scale.setScalar(0.8 + Math.sin(t * Math.PI) * 0.2);
+    }
+  });
+
+  const color = isHotter ? "#ff5500" : "#00aaff";
+
+  return (
+    <group ref={arrowRef}>
+      <mesh>
+        <tubeGeometry args={[curve, 32, 0.015, 8, false]} />
+        <meshBasicMaterial color={color} transparent opacity={0.6 * intensity} depthWrite={false} />
+      </mesh>
+      {/* Arrowhead */}
+      <mesh position={end} rotation={[0, -angle + Math.PI / 2, -Math.PI / 6]}>
+        <coneGeometry args={[0.06, 0.15, 16]} />
+        <meshBasicMaterial color={color} transparent opacity={0.8 * intensity} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+};
+
+const HeatTransferLines = ({ currentTemp, deltaT, isHotterThanEnv, viewMode }: { currentTemp: number, deltaT: number, isHotterThanEnv: boolean, viewMode: string }) => {
   const intensity = Math.min(1, Math.abs(deltaT) / 50);
   if (intensity < 0.05) return null;
 
   return (
-    <group>
-      {/* Sparkles flowing out or in */}
-      <Sparkles 
-        position={[0, 1.5, 0]} 
-        count={Math.floor(100 * intensity)} 
-        scale={[3, 3, 3]} 
-        size={4} 
-        speed={isHotterThanEnv ? 0.8 : -0.8} 
-        opacity={0.6 * intensity} 
-        color={isHotterThanEnv ? "#ef4444" : "#3b82f6"} 
+    <group position={[0, 0.2, 0]}>
+      {viewMode === 'Transfer' && <FluidAura currentTemp={currentTemp} deltaT={deltaT} isTransfer={true} />}
+
+      {/* Glowing curved arrows around the object */}
+      {[0, Math.PI / 3, (2 * Math.PI) / 3, Math.PI, (4 * Math.PI) / 3, (5 * Math.PI) / 3].map((angle, i) => (
+        <GlowingArrow key={i} angle={angle} intensity={intensity} isHotter={isHotterThanEnv} />
+      ))}
+
+      {/* Sparkles */}
+      <Sparkles
+        count={100 * intensity}
+        scale={[2.5, 3, 2.5]}
+        size={3}
+        speed={isHotterThanEnv ? 2.5 : -2.5}
+        opacity={0.6 * intensity}
+        color={isHotterThanEnv ? "#ff3300" : "#00ffff"}
       />
-      {/* Central aura ring */}
-      <mesh position={[0, 0.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[1.5, 0.05, 16, 64]} />
-        <meshBasicMaterial color={isHotterThanEnv ? "#ef4444" : "#3b82f6"} transparent opacity={0.3 * intensity} />
-      </mesh>
     </group>
   );
 };
 
-// Heatmap Aura Component
-const HeatmapAura = ({ currentTemp, deltaT }: { currentTemp: number, deltaT: number }) => {
-  const thermalColor = useMemo(() => getThermalColor(currentTemp), [currentTemp]);
-  const intensity = Math.min(1, Math.abs(deltaT) / 40);
-  
-  return (
-    <group position={[0, 0.5, 0]}>
-      {/* Inner strong aura */}
-      <Sphere args={[1.2, 32, 32]}>
-        <meshBasicMaterial color={thermalColor} transparent opacity={0.3} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </Sphere>
-      {/* Outer weak aura */}
-      <Sphere args={[2.5, 32, 32]}>
-        <meshBasicMaterial color={thermalColor} transparent opacity={0.1 * intensity} blending={THREE.AdditiveBlending} depthWrite={false} />
-      </Sphere>
-    </group>
-  );
-};
-
-// Realistic Environment Setup
 const EnvironmentProps = ({ envType, viewMode }: { envType: string, viewMode: string }) => {
-  // If thermal view, the environment should look cold or neutral depending on Tm
-  const tableColor = viewMode === 'Thermal' ? '#0015ff' : 
-                     envType === 'Room' ? '#d4a373' : 
-                     envType === 'Fridge' || envType === 'Freezer' ? '#e2e8f0' : '#8b5a2b';
-                     
-  const tableRoughness = envType === 'Fridge' ? 0.1 : 0.8;
-  const tableMetalness = envType === 'Fridge' ? 0.5 : 0.0;
+  const isThermal = viewMode === 'Thermal' || viewMode === 'Heatmap' || viewMode === 'Transfer';
+  const tableColor = isThermal
+    ? '#000000'
+    : envType === 'Room' ? '#c8d0da'
+    : envType === 'Fridge' || envType === 'Freezer' ? '#e8eef5'
+    : '#a8a8b0';
 
   return (
     <group>
-      {/* High-quality table/surface */}
-      <mesh receiveShadow position={[0, -0.05, 0]}>
-        <cylinderGeometry args={[4, 4, 0.1, 64]} />
-        <meshStandardMaterial 
-          color={tableColor} 
-          roughness={viewMode === 'Thermal' ? 1 : tableRoughness} 
-          metalness={viewMode === 'Thermal' ? 0 : tableMetalness} 
-        />
+      {/* Mesa limpia y plana sin geometría de cilindro que genera ruido */}
+      <mesh receiveShadow position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[5, 128]} />
+        {isThermal ? (
+          // En modo térmico: superficie absolutamente negra (fría = negro en FLIR)
+          <meshBasicMaterial color="#000000" />
+        ) : (
+          <meshStandardMaterial
+            color={tableColor}
+            roughness={0.25}
+            metalness={0.15}
+          />
+        )}
       </mesh>
-      
-      {/* Additional environmental details for realism */}
-      {envType === 'Room' && viewMode === 'Normal' && (
-        <mesh position={[2, -0.05, -2]} receiveShadow>
-          <boxGeometry args={[1, 0.05, 1.5]} />
-          <meshStandardMaterial color="#ffffff" roughness={0.9} />
+
+      {/* Pedestal solo en modo normal */}
+      {!isThermal && (
+        <mesh receiveShadow castShadow position={[0, 0.04, 0]}>
+          <cylinderGeometry args={[1.35, 1.45, 0.08, 64]} />
+          <meshPhysicalMaterial
+            color="#f5f5f5"
+            roughness={0.08}
+            metalness={0.05}
+            clearcoat={1.0}
+            clearcoatRoughness={0.05}
+          />
         </mesh>
       )}
-      
-      {/* Fridge/Freezer grid lines on surface */}
-      {(envType === 'Fridge' || envType === 'Freezer') && viewMode === 'Normal' && (
-        <gridHelper args={[8, 16, '#94a3b8', '#cbd5e1']} position={[0, 0.01, 0]} />
+
+      {/* Aro de luz naranja alrededor del pedestal (solo Normal) */}
+      {!isThermal && (
+        <mesh position={[0, 0.06, 0]}>
+          <torusGeometry args={[1.4, 0.012, 16, 64]} />
+          <meshBasicMaterial color="#ff8800" transparent opacity={0.45} />
+        </mesh>
       )}
     </group>
   );
@@ -134,35 +171,36 @@ const SceneContent = () => {
   const currentTemp = temperatureAtTime({ T0, Tm, k }, currentTime);
   const deltaT = currentTemp - Tm;
   const isHotterThanEnv = currentTemp > Tm;
+  const isThermal = viewMode === 'Thermal' || viewMode === 'Heatmap' || viewMode === 'Transfer';
 
-  // Background color mapping
-  const bgColor = theme === 'dark' ? '#0f172a' : '#EBF1F7';
-  
+  // Fondo FLIR real: totalmente negro en modo térmico, sin niebla que diluya los colores
+  const bgColor = isThermal ? '#000000' : theme === 'dark' ? '#0f172a' : '#e2e8f0';
+
   return (
     <>
-      <color attach="background" args={[viewMode === 'Thermal' ? '#000022' : bgColor]} />
-      
-      {/* Lighting setup based on viewMode and environment */}
-      <ambientLight intensity={viewMode === 'Thermal' ? 0.5 : (environment === 'Outside' ? 1.0 : 0.5)} color={viewMode === 'Thermal' ? '#ffffff' : '#ffffff'} />
-      <directionalLight 
-        position={[5, 10, 5]} 
-        intensity={viewMode === 'Thermal' ? 0 : (environment === 'Outside' ? 1.5 : 1.0)} 
-        castShadow 
-        shadow-mapSize-width={1024} 
-        shadow-mapSize-height={1024}
+      <color attach="background" args={[bgColor]} />
+      {!isThermal && <fog attach="fog" args={[bgColor, 6, 18]} />}
+
+      {/* En modo térmico: luz ambiental mínima para que los emissives sean los protagonistas */}
+      <ambientLight intensity={isThermal ? 0.05 : 0.45} color="#ffffff" />
+
+      <directionalLight
+        position={[4, 6, 2]}
+        intensity={isThermal ? 0 : 0.9}
+        castShadow
+        shadow-mapSize={[2048, 2048]}
+        shadow-bias={-0.0005}
       />
-      {viewMode === 'Normal' && <directionalLight position={[-5, 5, -5]} intensity={0.3} color="#93c5fd" />}
-      
+
       {viewMode === 'Normal' && (
-        <Environment preset={environment === 'Outside' ? 'city' : (environment === 'Fridge' || environment === 'Freezer' ? 'studio' : 'apartment')} />
+        <Environment preset="apartment" background={false} blur={0.6} />
       )}
 
       <group position={[0, -0.5, 0]}>
-        {/* Environment surface */}
         <EnvironmentProps envType={environment} viewMode={viewMode} />
-        
-        {/* Crisp Contact Shadow */}
-        <ContactShadows position={[0, 0, 0]} opacity={viewMode === 'Thermal' ? 0 : 0.65} scale={10} blur={1.5} far={4} resolution={1024} />
+
+        {/* Deep, highly detailed contact shadow */}
+        <ContactShadows position={[0, 0, 0]} opacity={isThermal ? 0.1 : 0.7} scale={12} blur={2.5} far={3} resolution={2048} color="#000000" />
 
         <Suspense fallback={null}>
           {objectType === 'Coffee' && <CoffeeMug currentTemp={currentTemp} viewMode={viewMode} />}
@@ -174,38 +212,42 @@ const SceneContent = () => {
           {objectType === 'Body' && <HumanBody currentTemp={currentTemp} viewMode={viewMode} />}
         </Suspense>
 
-        {/* Steam effect (only visible in Normal mode) */}
-        {viewMode === 'Normal' && <Steam currentTemp={currentTemp} />}
-
-        {/* Visual Modes */}
+        {/* In the mockup, arrows are shown even in Normal view. Let's show them in Normal and Transfer modes */}
+        {(viewMode === 'Normal' || viewMode === 'Transfer' || viewMode === 'Heatmap') && <Steam currentTemp={currentTemp} />}
         {viewMode === 'Heatmap' && <HeatmapAura currentTemp={currentTemp} deltaT={deltaT} />}
-        {viewMode === 'Transfer' && <HeatTransferLines deltaT={deltaT} isHotterThanEnv={isHotterThanEnv} />}
+        {(viewMode === 'Transfer' || viewMode === 'Normal') && <HeatTransferLines currentTemp={currentTemp} deltaT={deltaT} isHotterThanEnv={isHotterThanEnv} viewMode={viewMode} />}
       </group>
 
-      <OrbitControls 
-        makeDefault 
-        minPolarAngle={Math.PI / 4} 
-        maxPolarAngle={Math.PI / 2.1} 
-        minDistance={2.5} 
-        maxDistance={12} 
+      <OrbitControls
+        makeDefault
+        minPolarAngle={Math.PI / 6}
+        maxPolarAngle={Math.PI / 2.05}
+        minDistance={2}
+        maxDistance={8}
         enablePan={false}
-        autoRotate={viewMode === 'Normal'}
-        autoRotateSpeed={0.5}
+        autoRotate={viewMode === 'Normal' || isThermal}
+        autoRotateSpeed={0.8}
       />
+
+      {/* Cinematic Post-Processing: Bloom threshold 1.0 means ONLY emissive materials glow */}
+      <EffectComposer enableNormalPass={false}>
+        <Bloom
+          luminanceThreshold={1.0}
+          mipmapBlur
+          intensity={isThermal ? 2.5 : 1.0}
+          radius={0.8}
+        />
+      </EffectComposer>
     </>
   );
 };
 
-// Exporting standard wrapper for standard R3F usage, if needed elsewhere.
-// But actually, SimulationHero now imports ThermalScene and expects the Canvas inside, 
-// OR wait, earlier I removed the Canvas from SimulationHero? 
-// Let's re-add Canvas here since SimulationHero doesn't have it anymore!
 const ThermalScene = () => {
   return (
-    <Canvas 
-      shadows 
-      camera={{ position: [0, 2, 6], fov: 45 }}
-      gl={{ antialias: true, alpha: false }}
+    <Canvas
+      shadows
+      camera={{ position: [0, 2, 5.5], fov: 45 }}
+      gl={{ antialias: true, alpha: false, toneMapping: THREE.ACESFilmicToneMapping }}
     >
       <SceneContent />
     </Canvas>
